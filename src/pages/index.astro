@@ -1,0 +1,54 @@
+---
+import Base from '../layouts/Base.astro';
+import { getCollection } from 'astro:content';
+
+const base = import.meta.env.BASE_URL;
+const [exercises, tracks] = await Promise.all([
+  getCollection('exercises'),
+  getCollection('tracks'),
+]);
+
+const sortedTracks = tracks.sort((a, b) => a.data.order - b.data.order);
+const next = [...exercises].sort((a, b) => a.data.order - b.data.order)[0];
+---
+
+<Base>
+  <section class="hero">
+    <h1>Practice the guitar you have.</h1>
+    <p>
+      Short, playable exercises for a steel-string acoustic, with the theory attached to each
+      one. Rock, punk and metal are the destination, not the starting point.
+    </p>
+    {next && <a class="button" href={`${base}exercises/${next.id}/`}>Start: {next.data.title}</a>}
+  </section>
+
+  <section>
+    <h2>Tracks</h2>
+    <ul class="cards">
+      {
+        sortedTracks.map((track) => {
+          const count = exercises.filter((exercise) => exercise.data.track === track.id).length;
+          return (
+            <li class="card">
+              <h3>{track.data.title}</h3>
+              <p>{track.data.focus}</p>
+              <p class="meta">
+                {count} {count === 1 ? 'exercise' : 'exercises'}
+              </p>
+            </li>
+          );
+        })
+      }
+    </ul>
+  </section>
+
+  <section>
+    <h2>How this works</h2>
+    <p>
+      Every exercise is plain Markdown plus a tab block. New material is drafted by an agent,
+      checked by <code>npm run validate</code>, and only marked reviewed once it has actually
+      been played. Drafts stay visible on purpose: nothing is trusted until it has been through
+      your hands.
+    </p>
+  </section>
+</Base>

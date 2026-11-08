@@ -1,0 +1,25 @@
+{
+  "name": "guitar-practice",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "validate": "tsx scripts/validate.ts",
+    "check": "npm run validate && astro build"
+  },
+  "dependencies": {
+    "@coderline/alphatab": "^1.9.0",
+    "astro": "^7.4.7",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@coderline/alphatab-vite": "^1.9.0",
+    "gray-matter": "^4.0.3",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "yaml": "^2.9.1"
+  }
+}

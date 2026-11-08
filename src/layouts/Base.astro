@@ -1,0 +1,43 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const {
+  title = 'Guitar Practice',
+  description = 'A practice companion for acoustic guitar, built towards rock, punk and metal.',
+} = Astro.props;
+
+const base = import.meta.env.BASE_URL;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href={base}>Guitar Practice</a>
+      <nav>
+        <a href={`${base}exercises/`}>Exercises</a>
+        <a href={`${base}concepts/`}>Theory</a>
+        <a href={`${base}catalog/`}>Catalog</a>
+      </nav>
+    </header>
+
+    <main>
+      <slot />
+    </main>
+
+    <footer class="site-footer">
+      <p>Built with Astro and alphaTab. Practice slow, then slower.</p>
+    </footer>
+  </body>
+</html>

@@ -1,0 +1,50 @@
+---
+import Base from '../../layouts/Base.astro';
+import { getCollection } from 'astro:content';
+import { DIFFICULTY_LABELS } from '../../lib/schema';
+
+const base = import.meta.env.BASE_URL;
+const exercises = await getCollection('exercises');
+const tracks = (await getCollection('tracks')).sort((a, b) => a.data.order - b.data.order);
+
+const groups = tracks
+  .map((track) => ({
+    track,
+    items: exercises
+      .filter((exercise) => exercise.data.track === track.id)
+      .sort((a, b) => a.data.order - b.data.order),
+  }))
+  .filter((group) => group.items.length > 0);
+---
+
+<Base title="Exercises · Guitar Practice">
+  <h1>Exercises</h1>
+  <p>
+    One track at a time. Every tab plays in the browser, so you can start slower than written
+    and build up.
+  </p>
+
+  {
+    groups.map(({ track, items }) => (
+      <section>
+        <h2>{track.data.title}</h2>
+        <ul class="exercise-list">
+          {items.map((exercise) => (
+            <li>
+              <a href={`${base}exercises/${exercise.id}/`}>
+                <span>
+                  {exercise.data.order}. {exercise.data.title}
+                </span>
+                <span class="detail">
+                  {DIFFICULTY_LABELS[exercise.data.difficulty - 1]} · {exercise.data.instrument} ·{' '}
+                  {exercise.data.bpm.target} bpm
+                  {!exercise.data.reviewed && ' · draft'}
+                </span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
+    ))
+  }
+</Base>

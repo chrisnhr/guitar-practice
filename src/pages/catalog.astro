@@ -1,0 +1,62 @@
+---
+import Base from '../layouts/Base.astro';
+import { getCollection } from 'astro:content';
+
+const base = import.meta.env.BASE_URL;
+const exercises = await getCollection('exercises');
+const tracks = (await getCollection('tracks')).sort((a, b) => a.data.order - b.data.order);
+const concepts = (await getCollection('concepts')).sort((a, b) =>
+  a.data.title.localeCompare(b.data.title),
+);
+---
+
+<Base title="Catalog · Guitar Practice">
+  <h1>Catalog</h1>
+  <p>
+    Everything on the site, grouped for quick scanning. Agents read this page before adding new
+    material so they do not repeat what already exists.
+  </p>
+
+  {
+    tracks.map((track) => {
+      const items = exercises
+        .filter((exercise) => exercise.data.track === track.id)
+        .sort((a, b) => a.data.order - b.data.order);
+
+      if (items.length === 0) return null;
+
+      return (
+        <section>
+          <h2>{track.data.title}</h2>
+          <ul>
+            {items.map((exercise) => (
+              <li>
+                <a href={`${base}exercises/${exercise.id}/`}>{exercise.data.title}</a>
+                {' — '}
+                {exercise.data.instrument}, difficulty {exercise.data.difficulty},{' '}
+                {exercise.data.technique.length > 0
+                  ? exercise.data.technique.join(', ')
+                  : 'no technique tags'}
+              </li>
+            ))}
+          </ul>
+        </section>
+      );
+    })
+  }
+
+  <section>
+    <h2>Concepts</h2>
+    <ul>
+      {
+        concepts.map((concept) => (
+          <li>
+            <a href={`${base}concepts/${concept.id}/`}>{concept.data.title}</a>
+            {' — '}
+            {concept.data.summary}
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+</Base>

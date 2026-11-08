@@ -1,0 +1,91 @@
+---
+interface Props {
+  tex: string;
+  bpmStart: number;
+  bpmTarget: number;
+}
+
+const { tex, bpmStart, bpmTarget } = Astro.props;
+const startPercent = Math.min(120, Math.max(40, Math.round((bpmStart / bpmTarget) * 100)));
+---
+
+<div class="player">
+  <div class="alpha-tab" data-role="score">{tex}</div>
+
+  <div class="player-controls">
+    <button type="button" data-action="play" disabled>Loading player…</button>
+
+    <label class="control">
+      <span>Speed</span>
+      <input
+        type="range"
+        min="40"
+        max="120"
+        step="5"
+        value={startPercent}
+        data-action="speed"
+      />
+      <output data-role="speed-label">{startPercent}%</output>
+    </label>
+
+    <label class="control checkbox">
+      <input type="checkbox" data-action="metronome" checked />
+      <span>Metronome</span>
+    </label>
+  </div>
+
+  <p class="player-error" data-role="error" hidden></p>
+</div>
+
+<script>
+  import * as alphaTab from '@coderline/alphatab';
+
+  const base = import.meta.env.BASE_URL;
+
+  for (const root of document.querySelectorAll<HTMLElement>('.player')) {
+    const host = root.querySelector<HTMLElement>('[data-role="score"]');
+    const playButton = root.querySelector<HTMLButtonElement>('[data-action="play"]');
+    const speedInput = root.querySelector<HTMLInputElement>('[data-action="speed"]');
+    const speedLabel = root.querySelector<HTMLOutputElement>('[data-role="speed-label"]');
+    const metronomeInput = root.querySelector<HTMLInputElement>('[data-action="metronome"]');
+    const errorBox = root.querySelector<HTMLElement>('[data-role="error"]');
+
+    if (!host || !playButton || !speedInput || !speedLabel || !metronomeInput) continue;
+
+    try {
+      const api = new alphaTab.AlphaTabApi(host, {
+        core: {
+          tex: true,
+          fontDirectory: `${base}font/`,
+        },
+        player: {
+          enablePlayer: true,
+          soundFont: `${base}soundfont/sonivox.sf2`,
+        },
+      });
+
+      const applySpeed = () => {
+        const percent = Number(speedInput.value);
+        api.playbackSpeed = percent / 100;
+        speedLabel.textContent = `${percent}%`;
+      };
+
+      applySpeed();
+
+      playButton.disabled = false;
+      playButton.textContent = 'Play / pause';
+
+      speedInput.addEventListener('input', applySpeed);
+      playButton.addEventListener('click', () => api.playPause());
+      metronomeInput.addEventListener('change', () => {
+        api.metronomeVolume = metronomeInput.checked ? 1 : 0;
+      });
+    } catch (error) {
+      playButton.textContent = 'Player unavailable';
+      if (errorBox) {
+        errorBox.hidden = false;
+        errorBox.textContent = `The tab could not be loaded: ${(error as Error).message}`;
+      }
+    }
+  }
+</script>

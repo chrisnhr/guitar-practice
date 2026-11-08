@@ -1,0 +1,30 @@
+---
+import Base from '../../layouts/Base.astro';
+import { getCollection } from 'astro:content';
+
+const base = import.meta.env.BASE_URL;
+const concepts = (await getCollection('concepts')).sort((a, b) =>
+  a.data.title.localeCompare(b.data.title),
+);
+---
+
+<Base title="Theory · Guitar Practice">
+  <h1>Theory</h1>
+  <p>
+    Small ideas, each attached to exercises you can play. No separate textbook, no memorising
+    before you are allowed to make noise.
+  </p>
+
+  <ul class="cards">
+    {
+      concepts.map((concept) => (
+        <li class="card">
+          <h3>
+            <a href={`${base}concepts/${concept.id}/`}>{concept.data.title}</a>
+          </h3>
+          <p>{concept.data.summary}</p>
+        </li>
+      ))
+    }
+  </ul>
+</Base>

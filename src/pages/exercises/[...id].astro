@@ -1,0 +1,75 @@
+---
+import Base from '../../layouts/Base.astro';
+import Player from '../../components/Player.astro';
+import { getCollection, getEntry, render } from 'astro:content';
+import type { CollectionEntry } from 'astro:content';
+import { extractAlphaTex } from '../../lib/alphatex';
+import { DIFFICULTY_LABELS } from '../../lib/schema';
+
+export async function getStaticPaths() {
+  const exercises = await getCollection('exercises');
+  return exercises.map((exercise) => ({
+    params: { id: exercise.id },
+    props: { exercise },
+  }));
+}
+
+const { exercise } = Astro.props;
+const base = import.meta.env.BASE_URL;
+
+const tex = extractAlphaTex(exercise.body);
+if (!tex) {
+  throw new Error(`Exercise "${exercise.id}" has no fenced alphatex block.`);
+}
+
+const { Content } = await render(exercise);
+const track = await getEntry('tracks', exercise.data.track);
+
+const concepts = (
+  await Promise.all(exercise.data.concepts.map((id) => getEntry('concepts', id)))
+).filter((concept): concept is CollectionEntry<'concepts'> => concept !== undefined);
+---
+
+<Base title={`${exercise.data.title} · Guitar Practice`}>
+  <article>
+    <p class="crumb">
+      <a href={`${base}exercises/`}>Exercises</a>
+      {track && <> / {track.data.title}</>}
+    </p>
+
+    <h1>{exercise.data.title}</h1>
+    <p class="goal">{exercise.data.goal}</p>
+
+    <ul class="badges">
+      <li class="badge">{DIFFICULTY_LABELS[exercise.data.difficulty - 1]}</li>
+      <li class="badge">{exercise.data.instrument}</li>
+      <li class="badge">
+        {exercise.data.tuning === 'standard' ? 'standard tuning' : exercise.data.tuning}
+      </li>
+      <li class="badge">{exercise.data.timeSignature}</li>
+      <li class="badge">{exercise.data.bpm.start}–{exercise.data.bpm.target} bpm</li>
+      {!exercise.data.reviewed && <li class="badge draft">draft — not yet played through</li>}
+    </ul>
+
+    <Player tex={tex} bpmStart={exercise.data.bpm.start} bpmTarget={exercise.data.bpm.target} />
+
+    <div class="prose"><Content /></div>
+
+    {
+      concepts.length > 0 && (
+        <section class="related">
+          <h2>Theory behind it</h2>
+          <ul>
+            {concepts.map((concept) => (
+              <li>
+                <a href={`${base}concepts/${concept.id}/`}>{concept.data.title}</a>
+                {' — '}
+                {concept.data.summary}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )
+    }
+  </article>
+</Base>

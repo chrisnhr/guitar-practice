@@ -168,13 +168,30 @@ for (const file of exerciseFiles) {
     continue;
   }
 
+  let masterBarCount: number | null = null;
+
   try {
     const importer = new alphaTab.importer.AlphaTexImporter();
     importer.initFromString(tex, new alphaTab.Settings());
-    importer.readScore();
+    const score = importer.readScore();
+    masterBarCount = score.masterBars.length;
     collectDiagnostics(importer, relative);
   } catch (error) {
     fail(relative, `alphaTex failed to parse: ${(error as Error).message}`);
+  }
+
+  if (masterBarCount !== null) {
+    if (exercise.phraseBars > masterBarCount) {
+      fail(
+        relative,
+        `phraseBars ${exercise.phraseBars} is longer than the ${masterBarCount}-bar exercise`,
+      );
+    } else if (masterBarCount % exercise.phraseBars !== 0) {
+      fail(
+        relative,
+        `phraseBars ${exercise.phraseBars} does not divide the ${masterBarCount}-bar exercise evenly`,
+      );
+    }
   }
 
   /* Metadata must agree with the frontmatter ------------------------------- */

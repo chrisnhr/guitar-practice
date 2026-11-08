@@ -312,6 +312,22 @@ p {
   accent-color: var(--accent);
 }
 
+.control select {
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.control select:disabled {
+  color: var(--muted);
+  cursor: default;
+}
+
 .control.checkbox input {
   accent-color: var(--accent);
 }
@@ -345,6 +361,10 @@ p {
   border: 1px solid var(--border);
   border-radius: 10px;
   background: var(--panel);
+}
+
+.prose pre.astro-code {
+  display: none;
 }
 
 .prose pre code {

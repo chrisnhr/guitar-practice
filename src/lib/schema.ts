@@ -111,6 +111,12 @@ export const exerciseSchema = z.object({
   prereqs: z.array(z.string().min(1)).default([]),
   bpm,
   timeSignature: z.string().regex(/^\d{1,2}\/\d{1,2}$/),
+  /**
+   * Natural phrase length in bars. Loop lengths offered by the player are
+   * multiples of this that divide the exercise evenly, so a loop never cuts a
+   * chord or phrase in half. Must divide the total bar count.
+   */
+  phraseBars: z.number().int().positive().default(1),
   goal: z.string().min(1),
   /** Flip to true only after you have actually played through it. */
   reviewed: z.boolean().default(false),

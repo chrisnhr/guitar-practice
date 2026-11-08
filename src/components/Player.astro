@@ -3,13 +3,20 @@ interface Props {
   tex: string;
   bpmStart: number;
   bpmTarget: number;
+  phraseBars: number;
+  timeSignature: string;
 }
 
-const { tex, bpmStart, bpmTarget } = Astro.props;
+const { tex, bpmStart, bpmTarget, phraseBars, timeSignature } = Astro.props;
 const startPercent = Math.min(120, Math.max(40, Math.round((bpmStart / bpmTarget) * 100)));
 ---
 
-<div class="player">
+<div
+  class="player"
+  data-bpm-target={bpmTarget}
+  data-time-signature={timeSignature}
+  data-phrase-bars={phraseBars}
+>
   <div class="alpha-tab" data-role="score">{tex}</div>
 
   <div class="player-controls">
@@ -34,6 +41,24 @@ const startPercent = Math.min(120, Math.max(40, Math.round((bpmStart / bpmTarget
       />
       <output data-role="speed-label">{startPercent}%</output>
     </label>
+
+    <label class="control">
+      <span>Loop</span>
+      <select data-action="loop" disabled>
+        <option>Loading…</option>
+      </select>
+    </label>
+
+    <label class="control">
+      <span>Repeats</span>
+      <select data-action="repeats">
+        <option value="1">1×</option>
+        <option value="2">2×</option>
+        <option value="4" selected>4×</option>
+        <option value="8">8×</option>
+        <option value="inf">∞</option>
+      </select>
+    </label>
   </div>
 
   <p class="player-hint" data-role="hint">Guitar only — listen to the part.</p>
@@ -45,34 +70,24 @@ const startPercent = Math.min(120, Math.max(40, Math.round((bpmStart / bpmTarget
   import { base } from '../lib/url';
 
   const STORAGE_KEY = 'guitar-practice-mode';
+  const INFINITY = Number.POSITIVE_INFINITY;
 
   type Mode = 'demo' | 'playalong';
 
   interface ModeConfig {
-    /** 0 = silent, 1 = full volume. */
-    metronome: number;
-    /** One-bar lead-in before playback starts. */
-    countIn: number;
     /** True when the guitar itself should be silenced. */
     muteGuitar: boolean;
     hint: string;
-    startLabel: string;
   }
 
   const MODES: Record<Mode, ModeConfig> = {
     demo: {
-      metronome: 0,
-      countIn: 0,
       muteGuitar: false,
       hint: 'Guitar only — listen to the part.',
-      startLabel: 'Play demo',
     },
     playalong: {
-      metronome: 0.7,
-      countIn: 0.7,
       muteGuitar: true,
-      hint: 'Guitar muted. One bar of count-in, then you play along.',
-      startLabel: 'Start play-along',
+      hint: 'Guitar muted. The metronome keeps running until you pause.',
     },
   };
 
@@ -99,13 +114,77 @@ const startPercent = Math.min(120, Math.max(40, Math.round((bpmStart / bpmTarget
     const playButton = root.querySelector<HTMLButtonElement>('[data-action="play"]');
     const speedInput = root.querySelector<HTMLInputElement>('[data-action="speed"]');
     const speedLabel = root.querySelector<HTMLOutputElement>('[data-role="speed-label"]');
+    const loopSelect = root.querySelector<HTMLSelectElement>('[data-action="loop"]');
+    const repeatsSelect = root.querySelector<HTMLSelectElement>('[data-action="repeats"]');
     const hint = root.querySelector<HTMLElement>('[data-role="hint"]');
     const errorBox = root.querySelector<HTMLElement>('[data-role="error"]');
-    const modeButtons = [
-      ...root.querySelectorAll<HTMLButtonElement>('[data-action="mode"]'),
-    ];
+    const modeButtons = [...root.querySelectorAll<HTMLButtonElement>('[data-action="mode"]')];
 
-    if (!host || !playButton || !speedInput || !speedLabel) continue;
+    if (!host || !playButton || !speedInput || !speedLabel || !loopSelect || !repeatsSelect) {
+      continue;
+    }
+
+    let audioContext: AudioContext | undefined;
+    let metronomeTimer: number | undefined;
+    let nextBeatTime = 0;
+    let beatInBar = 0;
+    let metronomeRunning = false;
+
+    const stopMetronome = () => {
+      metronomeRunning = false;
+      if (metronomeTimer !== undefined) {
+        window.clearInterval(metronomeTimer);
+        metronomeTimer = undefined;
+      }
+      void audioContext?.suspend();
+    };
+
+    const startMetronome = async () => {
+      metronomeRunning = true;
+
+      try {
+        audioContext ??= new AudioContext();
+        await audioContext.resume();
+        if (!metronomeRunning) return;
+
+        const [beatsPerBar] = (root.dataset.timeSignature ?? '4/4').split('/').map(Number);
+        const beats = beatsPerBar || 4;
+        nextBeatTime = audioContext.currentTime + 0.03;
+        beatInBar = 0;
+
+        const scheduleClick = (time: number, accented: boolean) => {
+          const oscillator = audioContext!.createOscillator();
+          const gain = audioContext!.createGain();
+          oscillator.frequency.setValueAtTime(accented ? 1320 : 880, time);
+          gain.gain.setValueAtTime(0.0001, time);
+          gain.gain.exponentialRampToValueAtTime(0.2, time + 0.004);
+          gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.05);
+          oscillator.connect(gain);
+          gain.connect(audioContext!.destination);
+          oscillator.start(time);
+          oscillator.stop(time + 0.055);
+        };
+
+        const scheduleAhead = () => {
+          if (!audioContext || !metronomeRunning) return;
+          const tempo = Number(root.dataset.bpmTarget ?? '100') * (Number(speedInput.value) / 100);
+          while (nextBeatTime < audioContext.currentTime + 0.1) {
+            scheduleClick(nextBeatTime, beatInBar === 0);
+            nextBeatTime += 60 / tempo;
+            beatInBar = (beatInBar + 1) % beats;
+          }
+        };
+
+        scheduleAhead();
+        metronomeTimer = window.setInterval(scheduleAhead, 25);
+      } catch (error) {
+        metronomeRunning = false;
+        if (errorBox) {
+          errorBox.hidden = false;
+          errorBox.textContent = `The metronome could not start: ${(error as Error).message}`;
+        }
+      }
+    };
 
     try {
       const api = new alphaTab.AlphaTabApi(host, {
@@ -116,20 +195,99 @@ const startPercent = Math.min(120, Math.max(40, Math.round((bpmStart / bpmTarget
         player: {
           enablePlayer: true,
           soundFont: `${base}audio/generaluser-gs-2.0.3.sf3`,
+          // Clicking the score must not silently throw away the practice loop.
+          resetPlaybackRangeOnClick: false,
+          enablePlaybackRangeSelection: false,
         },
       });
 
       let mode = readSavedMode();
       let playing = false;
+      let scoreReady = false;
+
+      let totalBars = 0;
+      let loopBars = 0;
+      let completedLoops = 0;
+      let lastTick = 0;
+      let repeats = parseRepeats();
+      const phraseBars = Number(root.dataset.phraseBars ?? '1');
+
+      function parseRepeats(): number {
+        const raw = repeatsSelect!.value;
+        return raw === 'inf' ? INFINITY : Number(raw);
+      }
+
+      /**
+       * Tick bounds for the selected number of bars, starting at the top.
+       *
+      * alphaTab works in MIDI ticks, so the end boundary is the end of the
+      * selected final bar.
+       */
+      function loopRange(): { startTick: number; endTick: number } | null {
+        const masterBars = api.score?.masterBars;
+        if (!masterBars || masterBars.length === 0 || loopBars <= 0) return null;
+
+        const bars = Math.min(loopBars, totalBars);
+        const endBar = masterBars[bars - 1];
+        return {
+          startTick: masterBars[0].start,
+          endTick: endBar.start + endBar.calculateDuration(),
+        };
+      }
+
+      /**
+       * Keep wrapping only while a repeat is still owed. On the final pass we
+       * clear `isLooping`, so playback reaches the range end and stops there
+       * instead of beginning an extra, unwanted loop.
+       */
+      function updateLoopFlags(): void {
+        if (!api.playbackRange) return;
+        api.isLooping = repeats === INFINITY || completedLoops + 1 < repeats;
+      }
+
+      function applyLoopRange(): void {
+        const range = loopRange();
+        api.playbackRange = range;
+        updateLoopFlags();
+        lastTick = range ? Math.max(range.startTick, api.tickPosition) : 0;
+      }
+
+      function populateLoopOptions(): void {
+        const lengths: number[] = [];
+
+        // Multiples of the phrase that also divide the exercise evenly, so a
+        // loop always ends on a bar (and never halfway through a chord).
+        for (let bars = phraseBars; bars <= totalBars; bars += phraseBars) {
+          if (totalBars % bars === 0) lengths.push(bars);
+        }
+        if (lengths.length === 0) lengths.push(totalBars);
+
+        loopSelect!.replaceChildren(
+          ...lengths.map((bars) => {
+            const option = document.createElement('option');
+            option.value = String(bars);
+            option.textContent =
+              bars === totalBars
+                ? `Whole exercise (${bars} bar${bars === 1 ? '' : 's'})`
+                : `${bars} bar${bars === 1 ? '' : 's'}`;
+            return option;
+          }),
+        );
+
+        // Default to the whole exercise: one click plays the full phrase
+        // several times instead of stopping after a single pass.
+        loopBars = lengths[lengths.length - 1];
+        loopSelect!.value = String(loopBars);
+      }
 
       const updatePlayLabel = () => {
-        playButton.textContent = playing ? 'Pause' : MODES[mode].startLabel;
+        playButton.textContent = playing || metronomeRunning ? 'Pause' : 'Play';
       };
 
       const applyMode = () => {
         const config = MODES[mode];
-        api.metronomeVolume = config.metronome;
-        api.countInVolume = config.countIn;
+        api.metronomeVolume = 0;
+        api.countInVolume = 0;
 
         // The score arrives asynchronously; re-applied from scoreLoaded below.
         if (api.score) {
@@ -151,20 +309,80 @@ const startPercent = Math.min(120, Math.max(40, Math.round((bpmStart / bpmTarget
 
       applySpeed();
       applyMode();
-      api.scoreLoaded.on(() => applyMode());
+
+      api.scoreLoaded.on((score) => initialiseScore(score));
+
+      // Inline alphaTex is parsed synchronously during construction, so
+      // `scoreLoaded` can fire before the listener above is attached. Run the
+      // same setup immediately when that has happened.
+      if (api.score) initialiseScore(api.score);
+
+      function initialiseScore(score: alphaTab.model.Score): void {
+        if (scoreReady) return;
+        scoreReady = true;
+
+        totalBars = score.masterBars.length;
+        populateLoopOptions();
+        applyMode();
+        applyLoopRange();
+        loopSelect!.disabled = false;
+        playButton!.disabled = false;
+      }
 
       api.playerStateChanged.on(({ state }) => {
         playing = state === alphaTab.synth.PlayerState.Playing;
         updatePlayLabel();
       });
 
-      playButton.disabled = false;
+      api.playerPositionChanged.on(({ currentTick }) => {
+        const range = loopRange();
+
+        if (playing && range && lastTick > range.startTick && currentTick < lastTick) {
+          // alphaTab wrapped from endTick back to startTick: one full pass done.
+          completedLoops += 1;
+
+          if (repeats !== INFINITY && completedLoops + 1 >= repeats) {
+            // The final pass just started. Let it finish and stop at the end.
+            api.isLooping = false;
+          }
+        }
+
+        lastTick = currentTick;
+      });
 
       speedInput.addEventListener('input', applySpeed);
 
       playButton.addEventListener('click', () => {
         // Guard against a click that lands before the score has loaded.
         applyMode();
+
+        if (playing || metronomeRunning) {
+          stopMetronome();
+          if (playing) api.playPause();
+          updatePlayLabel();
+          return;
+        }
+
+        const range = loopRange();
+
+        if (!playing && range) {
+          const current = api.tickPosition;
+          const atStart = current <= range.startTick + 1;
+          const atEnd = current >= range.endTick - 1;
+
+          if (atStart || atEnd) {
+            // Fresh run, or the previous run finished at the range end. Do not
+            // re-apply the range on a mid-phrase resume: that can seek back to
+            // the top and throw away where the player had got to.
+            completedLoops = 0;
+            if (atEnd) api.tickPosition = range.startTick;
+            applyLoopRange();
+            lastTick = api.tickPosition;
+          }
+        }
+
+        void startMetronome();
+        updatePlayLabel();
         api.playPause();
       });
 
@@ -178,6 +396,26 @@ const startPercent = Math.min(120, Math.max(40, Math.round((bpmStart / bpmTarget
           applyMode();
         });
       }
+
+      loopSelect.addEventListener('change', () => {
+        loopBars = Number(loopSelect.value);
+        completedLoops = 0;
+
+        const range = loopRange();
+        if (!range) return;
+
+        api.playbackRange = range;
+        if (api.tickPosition < range.startTick || api.tickPosition >= range.endTick) {
+          api.tickPosition = range.startTick;
+        }
+        updateLoopFlags();
+        lastTick = api.tickPosition;
+      });
+
+      repeatsSelect.addEventListener('change', () => {
+        repeats = parseRepeats();
+        if (playing) updateLoopFlags();
+      });
     } catch (error) {
       playButton.textContent = 'Player unavailable';
       if (errorBox) {

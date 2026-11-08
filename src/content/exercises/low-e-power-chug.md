@@ -12,6 +12,7 @@ bpm:
   start: 60
   target: 100
 timeSignature: "4/4"
+phraseBars: 1
 goal: "Move an E5 shape between E, G and A without losing the pulse."
 reviewed: false
 ---

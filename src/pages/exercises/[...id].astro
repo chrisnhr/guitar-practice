@@ -51,7 +51,13 @@ const concepts = (
       {!exercise.data.reviewed && <li class="badge draft">draft — not yet played through</li>}
     </ul>
 
-    <Player tex={tex} bpmStart={exercise.data.bpm.start} bpmTarget={exercise.data.bpm.target} />
+    <Player
+      tex={tex}
+      bpmStart={exercise.data.bpm.start}
+      bpmTarget={exercise.data.bpm.target}
+      phraseBars={exercise.data.phraseBars}
+      timeSignature={exercise.data.timeSignature}
+    />
 
     <div class="prose"><Content /></div>
 

@@ -15,6 +15,13 @@ const startPercent = Math.min(120, Math.max(40, Math.round((bpmStart / bpmTarget
   <div class="player-controls">
     <button type="button" data-action="play" disabled>Loading player…</button>
 
+    <div class="mode-switch" role="group" aria-label="Playback mode">
+      <button type="button" data-action="mode" data-mode="demo" aria-pressed="true">Demo</button>
+      <button type="button" data-action="mode" data-mode="playalong" aria-pressed="false">
+        Play-along
+      </button>
+    </div>
+
     <label class="control">
       <span>Speed</span>
       <input
@@ -27,13 +34,9 @@ const startPercent = Math.min(120, Math.max(40, Math.round((bpmStart / bpmTarget
       />
       <output data-role="speed-label">{startPercent}%</output>
     </label>
-
-    <label class="control checkbox">
-      <input type="checkbox" data-action="metronome" checked />
-      <span>Metronome</span>
-    </label>
   </div>
 
+  <p class="player-hint" data-role="hint">Guitar only — listen to the part.</p>
   <p class="player-error" data-role="error" hidden></p>
 </div>
 
@@ -41,15 +44,68 @@ const startPercent = Math.min(120, Math.max(40, Math.round((bpmStart / bpmTarget
   import * as alphaTab from '@coderline/alphatab';
   import { base } from '../lib/url';
 
+  const STORAGE_KEY = 'guitar-practice-mode';
+
+  type Mode = 'demo' | 'playalong';
+
+  interface ModeConfig {
+    /** 0 = silent, 1 = full volume. */
+    metronome: number;
+    /** One-bar lead-in before playback starts. */
+    countIn: number;
+    /** True when the guitar itself should be silenced. */
+    muteGuitar: boolean;
+    hint: string;
+    startLabel: string;
+  }
+
+  const MODES: Record<Mode, ModeConfig> = {
+    demo: {
+      metronome: 0,
+      countIn: 0,
+      muteGuitar: false,
+      hint: 'Guitar only — listen to the part.',
+      startLabel: 'Play demo',
+    },
+    playalong: {
+      metronome: 0.7,
+      countIn: 0.7,
+      muteGuitar: true,
+      hint: 'Guitar muted. One bar of count-in, then you play along.',
+      startLabel: 'Start play-along',
+    },
+  };
+
+  function readSavedMode(): Mode {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved === 'demo' || saved === 'playalong') return saved;
+    } catch {
+      // Private browsing or storage disabled: fall back to the default.
+    }
+    return 'demo';
+  }
+
+  function saveMode(mode: Mode): void {
+    try {
+      localStorage.setItem(STORAGE_KEY, mode);
+    } catch {
+      // Persisting the choice is a nicety, not a requirement.
+    }
+  }
+
   for (const root of document.querySelectorAll<HTMLElement>('.player')) {
     const host = root.querySelector<HTMLElement>('[data-role="score"]');
     const playButton = root.querySelector<HTMLButtonElement>('[data-action="play"]');
     const speedInput = root.querySelector<HTMLInputElement>('[data-action="speed"]');
     const speedLabel = root.querySelector<HTMLOutputElement>('[data-role="speed-label"]');
-    const metronomeInput = root.querySelector<HTMLInputElement>('[data-action="metronome"]');
+    const hint = root.querySelector<HTMLElement>('[data-role="hint"]');
     const errorBox = root.querySelector<HTMLElement>('[data-role="error"]');
+    const modeButtons = [
+      ...root.querySelectorAll<HTMLButtonElement>('[data-action="mode"]'),
+    ];
 
-    if (!host || !playButton || !speedInput || !speedLabel || !metronomeInput) continue;
+    if (!host || !playButton || !speedInput || !speedLabel) continue;
 
     try {
       const api = new alphaTab.AlphaTabApi(host, {
@@ -63,6 +119,30 @@ const startPercent = Math.min(120, Math.max(40, Math.round((bpmStart / bpmTarget
         },
       });
 
+      let mode = readSavedMode();
+      let playing = false;
+
+      const updatePlayLabel = () => {
+        playButton.textContent = playing ? 'Pause' : MODES[mode].startLabel;
+      };
+
+      const applyMode = () => {
+        const config = MODES[mode];
+        api.metronomeVolume = config.metronome;
+        api.countInVolume = config.countIn;
+
+        // The score arrives asynchronously; re-applied from scoreLoaded below.
+        if (api.score) {
+          api.changeTrackMute(api.score.tracks, config.muteGuitar);
+        }
+
+        for (const button of modeButtons) {
+          button.setAttribute('aria-pressed', String(button.dataset.mode === mode));
+        }
+        if (hint) hint.textContent = config.hint;
+        updatePlayLabel();
+      };
+
       const applySpeed = () => {
         const percent = Number(speedInput.value);
         api.playbackSpeed = percent / 100;
@@ -70,15 +150,34 @@ const startPercent = Math.min(120, Math.max(40, Math.round((bpmStart / bpmTarget
       };
 
       applySpeed();
+      applyMode();
+      api.scoreLoaded.on(() => applyMode());
+
+      api.playerStateChanged.on(({ state }) => {
+        playing = state === alphaTab.synth.PlayerState.Playing;
+        updatePlayLabel();
+      });
 
       playButton.disabled = false;
-      playButton.textContent = 'Play / pause';
 
       speedInput.addEventListener('input', applySpeed);
-      playButton.addEventListener('click', () => api.playPause());
-      metronomeInput.addEventListener('change', () => {
-        api.metronomeVolume = metronomeInput.checked ? 1 : 0;
+
+      playButton.addEventListener('click', () => {
+        // Guard against a click that lands before the score has loaded.
+        applyMode();
+        api.playPause();
       });
+
+      for (const button of modeButtons) {
+        button.addEventListener('click', () => {
+          const next = button.dataset.mode;
+          if (next !== 'demo' && next !== 'playalong') return;
+
+          mode = next;
+          saveMode(mode);
+          applyMode();
+        });
+      }
     } catch (error) {
       playButton.textContent = 'Player unavailable';
       if (errorBox) {

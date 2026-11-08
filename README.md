@@ -60,7 +60,7 @@ reviewed: false
 
 ```alphatex
 \tempo 100
-\track "Guitar" { instrument distortionguitar }
+\track "Guitar" { instrument acousticguitarsteel }
 \tuning (E4 B3 G3 D3 A2 E2)
 \ts (4 4)
 (0.6 2.5).8 (0.6 2.5).8 (0.6 2.5).8 (0.6 2.5).8 |
@@ -89,6 +89,18 @@ regenerates that directory on every build. Larger files sound better but
 download slower; trimming to just the guitar presets with
 [Polyphone](https://www.polyphone-soundfonts.com/) is the usual next step.
 Licensing lives next to the file.
+
+### Playback modes
+
+Every exercise player has two modes:
+
+- **Demo** — guitar only, no click. Hear the part and its timing.
+- **Play-along** — the guitar is muted, the metronome runs, and one bar of
+  count-in plays before the tab starts. The score still scrolls so you can read
+  while you play.
+
+The speed slider applies to both. The last mode you picked is remembered in
+`localStorage`.
 
 ## Deploying
 

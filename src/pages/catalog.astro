@@ -27,7 +27,7 @@ const concepts = (await getCollection('concepts')).sort((a, b) =>
 
       return (
         <section>
-          <h2>{track.data.title}</h2>
+          <h2><a href={`${base}tracks/${track.id}/`}>{track.data.title}</a></h2>
           <ul>
             {items.map((exercise) => (
               <li>

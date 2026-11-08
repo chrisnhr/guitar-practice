@@ -1,0 +1,58 @@
+---
+import Base from '../../layouts/Base.astro';
+import { getCollection } from 'astro:content';
+import { DIFFICULTY_LABELS } from '../../lib/schema';
+import { base } from '../../lib/url';
+
+export async function getStaticPaths() {
+  const [tracks, allExercises] = await Promise.all([
+    getCollection('tracks'),
+    getCollection('exercises'),
+  ]);
+
+  return tracks.map((track) => ({
+    params: { id: track.id },
+    props: {
+      track,
+      exercises: allExercises
+        .filter((exercise) => exercise.data.track === track.id)
+        .sort((a, b) => a.data.order - b.data.order),
+    },
+  }));
+}
+
+const { track, exercises } = Astro.props;
+---
+
+<Base title={`${track.data.title} · Guitar Practice`} description={track.data.focus}>
+  <p class="crumb"><a href={`${base}exercises/`}>Exercises</a> / Track</p>
+  <h1>{track.data.title}</h1>
+  <p class="goal">{track.data.focus}</p>
+
+  <ul class="badges">
+    <li class="badge">{track.data.instrument}</li>
+    <li class="badge">{exercises.length} {exercises.length === 1 ? 'exercise' : 'exercises'}</li>
+  </ul>
+
+  <section>
+    <h2>Exercises</h2>
+    {exercises.length > 0 ? (
+      <ul class="exercise-list">
+        {exercises.map((exercise) => (
+          <li>
+            <a href={`${base}exercises/${exercise.id}/`}>
+              <span>{exercise.data.order}. {exercise.data.title}</span>
+              <span class="detail">
+                {DIFFICULTY_LABELS[exercise.data.difficulty - 1]} · {exercise.data.bpm.start}–
+                {exercise.data.bpm.target} bpm {!exercise.data.reviewed && '· draft'}
+              </span>
+              <span class="track-exercise-goal">{exercise.data.goal}</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    ) : (
+      <p>No exercises have been added to this track yet.</p>
+    )}
+  </section>
+</Base>

@@ -223,6 +223,12 @@ p {
   font-size: 0.85rem;
 }
 
+.exercise-list .track-exercise-goal {
+  flex-basis: 100%;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
 .player {
   margin: 1.75rem 0;
   padding: 1rem;

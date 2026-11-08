@@ -9,7 +9,13 @@ const [exercises, tracks] = await Promise.all([
 ]);
 
 const sortedTracks = tracks.sort((a, b) => a.data.order - b.data.order);
-const next = [...exercises].sort((a, b) => a.data.order - b.data.order)[0];
+const trackOrder = new Map(sortedTracks.map((track) => [track.id, track.data.order]));
+const curriculum = [...exercises].sort((a, b) => {
+  const trackDifference =
+    (trackOrder.get(a.data.track) ?? 0) - (trackOrder.get(b.data.track) ?? 0);
+  return trackDifference || a.data.order - b.data.order;
+});
+const next = curriculum[curriculum.length - 1];
 ---
 
 <Base>
@@ -30,7 +36,7 @@ const next = [...exercises].sort((a, b) => a.data.order - b.data.order)[0];
           const count = exercises.filter((exercise) => exercise.data.track === track.id).length;
           return (
             <li class="card">
-              <h3>{track.data.title}</h3>
+              <h3><a href={`${base}tracks/${track.id}/`}>{track.data.title}</a></h3>
               <p>{track.data.focus}</p>
               <p class="meta">
                 {count} {count === 1 ? 'exercise' : 'exercises'}
@@ -42,13 +48,4 @@ const next = [...exercises].sort((a, b) => a.data.order - b.data.order)[0];
     </ul>
   </section>
 
-  <section>
-    <h2>How this works</h2>
-    <p>
-      Every exercise is plain Markdown plus a tab block. New material is drafted by an agent,
-      checked by <code>npm run validate</code>, and only marked reviewed once it has actually
-      been played. Drafts stay visible on purpose: nothing is trusted until it has been through
-      your hands.
-    </p>
-  </section>
 </Base>

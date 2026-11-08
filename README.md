@@ -68,10 +68,29 @@ reviewed: false
 
 ## Deploying
 
-The workflow in `.github/workflows/deploy.yml` builds on every push to `main`.
+The site is live at <https://chrisnhr.github.io/guitar-practice/>.
 
-1. Repository **Settings → Pages → Build and deployment → Source: GitHub Actions**.
-2. Push to `main`; the site appears at the URL above.
+### Current method: `gh-pages` branch
+
+GitHub Actions is unavailable on this account right now (GitHub reports
+*"your account is locked due to a billing issue"*), so the site is deployed by
+building locally and force-pushing `dist/` to the `gh-pages` branch:
+
+```sh
+npm run deploy     # validate + build + push dist/ to gh-pages
+```
+
+Pages is configured as **Settings → Pages → Source: Deploy from a branch →
+`gh-pages` / `/`**. The script writes `dist/.nojekyll`, which is required:
+without it Jekyll drops the `_astro/` directory and the site loses its CSS and JS.
+
+### Going back to Actions
+
+Once the billing issue is resolved:
+
+1. Re-enable the `push` trigger in `.github/workflows/deploy.yml`.
+2. Set **Settings → Pages → Source** to **GitHub Actions**.
+3. Push to `main`.
 
 If you change the repository name, update `base` in `astro.config.mjs` (and `site`) to match.
 alphaTab's font and SoundFont URLs are derived from `import.meta.env.BASE_URL`, so a wrong

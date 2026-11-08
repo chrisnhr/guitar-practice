@@ -26,6 +26,11 @@ remote_url="$(git remote get-url "$remote")"
 # break /_astro/.
 touch dist/.nojekyll
 
+# alphaTab's Vite plugin copies its own Sonivox bank into dist/soundfont/ on
+# every build. We serve GeneralUser GS from public/audio/ instead, so skip the
+# unused ~2.2 MB.
+rm -rf dist/soundfont
+
 cd dist
 
 if [ "$(pwd)" != "$root/dist" ]; then

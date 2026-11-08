@@ -31,7 +31,7 @@ If the chord change is the problem, practise moving the shape silently between c
 
 ```alphatex
 \tempo 100
-\track "Guitar" { instrument distortionguitar }
+\track "Guitar" { instrument acousticguitarsteel }
 \tuning (E4 B3 G3 D3 A2 E2)
 \ts (4 4)
 (0.6 2.5).8 (0.6 2.5).8 (0.6 2.5).8 (0.6 2.5).8 |

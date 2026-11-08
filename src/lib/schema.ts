@@ -47,6 +47,30 @@ export const TECHNIQUES = [
 
 export type Technique = (typeof TECHNIQUES)[number];
 
+/**
+ * alphaTex instrument names, grouped by the frontmatter `instrument` field.
+ *
+ * Playback timbre is chosen by the tab, not by the SoundFont, so these two
+ * must agree. A missing instrument silently falls back to piano, which is why
+ * the validator requires one.
+ */
+const ACOUSTIC_INSTRUMENTS = ['acousticguitarsteel', 'acousticguitarnylon'] as const;
+const ELECTRIC_INSTRUMENTS = [
+  'electricguitarclean',
+  'electricguitarjazz',
+  'electricguitarmuted',
+  'overdrivenguitar',
+  'distortionguitar',
+  'guitarharmonics',
+] as const;
+
+export const ALPHATEX_INSTRUMENTS = {
+  acoustic: ACOUSTIC_INSTRUMENTS,
+  electric: ELECTRIC_INSTRUMENTS,
+  both: [...ACOUSTIC_INSTRUMENTS, ...ELECTRIC_INSTRUMENTS],
+} as const;
+
+
 /** Techniques that are genuinely hard on a steel-string acoustic. */
 export const ACOUSTIC_HARD_TECHNIQUES: readonly Technique[] = [
   'bend',

@@ -21,6 +21,7 @@ npm run check      # validate, then build
 - frontmatter against the Zod schemas in `src/lib/schema.ts`
 - that the alphaTex parses, using alphaTab's own importer
 - that `\tempo`, `\ts` and `\tuning` match the frontmatter
+- that the tab's `instrument` matches the `instrument` frontmatter (and is present at all)
 - frets 0–24, valid string numbers, and no prerequisite cycles
 - acoustic-specific warnings (high frets, bends, harmonics, tremolo bar)
 - duplicate titles and unknown references
@@ -65,6 +66,29 @@ reviewed: false
 (0.6 2.5).8 (0.6 2.5).8 (0.6 2.5).8 (0.6 2.5).8 |
 ```
 ```
+
+## Playback sound
+
+alphaTab synthesises audio from a SoundFont, so sample quality is the whole
+sound. The site ships **GeneralUser GS 2.0.3** (`public/audio/`), an 8.7 MB
+SF3 bank with full-rate guitar, bass and drum samples. It replaces alphaTab's
+bundled Sonivox bank, which is intentionally tiny and is the reason the default
+playback sounds like a 1990s MIDI file.
+
+Two separate things decide what you hear:
+
+1. **The SoundFont** — the raw samples, set once in `src/components/Player.astro`.
+2. **The `instrument` in each exercise's alphaTex** — which sample is used, e.g.
+   `acousticguitarsteel` (GM 25), `electricguitarclean` (27), `distortionguitar`
+   (30). A missing instrument plays as piano, so the validator requires one and
+   checks it against the exercise's frontmatter.
+
+To try a different bank, drop an `.sf2`/`.sf3` into `public/audio/` and point
+`player.soundFont` at it. Don't use `public/soundfont/`: alphaTab's Vite plugin
+regenerates that directory on every build. Larger files sound better but
+download slower; trimming to just the guitar presets with
+[Polyphone](https://www.polyphone-soundfonts.com/) is the usual next step.
+Licensing lives next to the file.
 
 ## Deploying
 

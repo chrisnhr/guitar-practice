@@ -40,7 +40,7 @@ Body: short prose (`## What it trains`, `## How to practise`) followed by exactl
 
 ```
 \tempo <bpm.target>
-\track "Guitar" { instrument distortionguitar }
+\track "Guitar" { instrument acousticguitarsteel }
 \tuning (<string1> <string2> ... <string6>)   // highest string first
 \ts (<beats> <unit>)
 ```
@@ -49,6 +49,21 @@ Body: short prose (`## What it trains`, `## How to practise`) followed by exactl
 - Chord: `(0.6 2.5).8` — notes together, then the duration.
 - Define durations explicitly. Keep every bar complete for the time signature.
 - Do not invent metadata tags or instrument names.
+
+### Pick an instrument that matches the frontmatter
+
+`npm run validate` fails if the tab's `instrument` and the frontmatter disagree. Without an
+instrument the part falls back to piano, which is never what you want.
+
+| `instrument` | allowed alphaTex instruments |
+|---|---|
+| `acoustic` | `acousticguitarsteel`, `acousticguitarnylon` |
+| `electric` | `electricguitarclean`, `electricguitarjazz`, `electricguitarmuted`, `overdrivenguitar`, `distortionguitar`, `guitarharmonics` |
+| `both` | any of the above |
+
+Use `acousticguitarsteel` for the default steel-string voice. Reserve distortion and overdrive
+for material that is genuinely about electric tone, and say so in the prose. The machine you are
+writing for is an unamplified steel-string; playback is a reference, not a backing track.
 
 ## Acoustic constraints
 

@@ -5,6 +5,7 @@ import matter from 'gray-matter';
 import { parse as parseYaml } from 'yaml';
 import {
   ACOUSTIC_HARD_TECHNIQUES,
+  ALPHATEX_INSTRUMENTS,
   TUNINGS,
   conceptSchema,
   exerciseSchema,
@@ -191,6 +192,29 @@ for (const file of exerciseFiles) {
     const actual = `${timeSignature[1]}/${timeSignature[2]}`;
     if (actual !== exercise.timeSignature) {
       fail(relative, `\\ts ${actual} does not match timeSignature ${exercise.timeSignature}`);
+    }
+  }
+
+  /* Instrument must match the frontmatter -------------------------------- */
+  const trackMeta = tex.match(/\\track\b[^{]*\{([^}]*)\}/i);
+  const instrumentMatch = trackMeta?.[1].match(/\binstrument\s+([a-z][\w-]*)/i);
+
+  if (!trackMeta) {
+    fail(relative, 'missing \\track "..." { ... } metadata in the tab');
+  } else if (!instrumentMatch) {
+    fail(
+      relative,
+      'missing instrument <name> in the \\track metadata; without it the part plays as a piano',
+    );
+  } else {
+    const actual = instrumentMatch[1].toLowerCase();
+    const allowed = ALPHATEX_INSTRUMENTS[exercise.instrument] as readonly string[];
+
+    if (!allowed.includes(actual)) {
+      fail(
+        relative,
+        `instrument "${actual}" does not match frontmatter instrument "${exercise.instrument}" (use ${allowed.join(' or ')})`,
+      );
     }
   }
 

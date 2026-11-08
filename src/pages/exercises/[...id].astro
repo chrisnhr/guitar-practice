@@ -5,6 +5,7 @@ import { getCollection, getEntry, render } from 'astro:content';
 import type { CollectionEntry } from 'astro:content';
 import { extractAlphaTex } from '../../lib/alphatex';
 import { DIFFICULTY_LABELS } from '../../lib/schema';
+import { base } from '../../lib/url';
 
 export async function getStaticPaths() {
   const exercises = await getCollection('exercises');
@@ -15,7 +16,6 @@ export async function getStaticPaths() {
 }
 
 const { exercise } = Astro.props;
-const base = import.meta.env.BASE_URL;
 
 const tex = extractAlphaTex(exercise.body);
 if (!tex) {

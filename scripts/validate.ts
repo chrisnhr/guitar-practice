@@ -295,6 +295,28 @@ const conceptCycle = findCycle(conceptPrereqs);
 if (conceptCycle) fail('concepts', `prerequisite cycle: ${conceptCycle.join(' -> ')}`);
 
 /* -------------------------------------------------------------------------- */
+/* Source guard                                                                */
+/* -------------------------------------------------------------------------- */
+
+// Astro's BASE_URL has no trailing slash. Reading it directly is how the
+// `/guitar-practiceexercises/` links happened; route everything through url.ts.
+const sourceFiles = readdirSync(resolve(root, 'src'), { recursive: true })
+  .map(String)
+  .filter((file) => /\.(astro|ts)$/.test(file));
+
+for (const file of sourceFiles) {
+  if (file.endsWith('lib/url.ts')) continue;
+
+  const text = readFileSync(resolve(root, 'src', file), 'utf8');
+  if (text.includes('import.meta.env.BASE_URL')) {
+    fail(
+      `src/${file}`,
+      'use src/lib/url.ts instead of import.meta.env.BASE_URL (BASE_URL has no trailing slash)',
+    );
+  }
+}
+
+/* -------------------------------------------------------------------------- */
 /* Report                                                                      */
 /* -------------------------------------------------------------------------- */
 

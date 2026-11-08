@@ -39,8 +39,7 @@ const startPercent = Math.min(120, Math.max(40, Math.round((bpmStart / bpmTarget
 
 <script>
   import * as alphaTab from '@coderline/alphatab';
-
-  const base = import.meta.env.BASE_URL;
+  import { base } from '../lib/url';
 
   for (const root of document.querySelectorAll<HTMLElement>('.player')) {
     const host = root.querySelector<HTMLElement>('[data-role="score"]');

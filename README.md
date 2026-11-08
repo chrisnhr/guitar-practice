@@ -106,27 +106,21 @@ The speed slider applies to both. The last mode you picked is remembered in
 
 The site is live at <https://chrisnhr.github.io/guitar-practice/>.
 
-### Current method: `gh-pages` branch
+### Automatic deployment
 
-GitHub Actions is unavailable on this account right now (GitHub reports
-*"your account is locked due to a billing issue"*), so the site is deployed by
-building locally and force-pushing `dist/` to the `gh-pages` branch:
+`.github/workflows/deploy.yml` validates and builds the site, then deploys it to
+GitHub Pages whenever a commit is pushed to `main`. It can also be started
+manually from the Actions tab. Pages must be configured at **Settings → Pages →
+Build and deployment → Source: GitHub Actions**, and GitHub Actions must be
+available for the repository. If Actions is unavailable because of an account
+billing restriction, the workflow cannot publish until that restriction is resolved.
 
-```sh
-npm run deploy     # validate + build + push dist/ to gh-pages
-```
+### Manual fallback
 
-Pages is configured as **Settings → Pages → Source: Deploy from a branch →
-`gh-pages` / `/`**. The script writes `dist/.nojekyll`, which is required:
-without it Jekyll drops the `_astro/` directory and the site loses its CSS and JS.
-
-### Going back to Actions
-
-Once the billing issue is resolved:
-
-1. Re-enable the `push` trigger in `.github/workflows/deploy.yml`.
-2. Set **Settings → Pages → Source** to **GitHub Actions**.
-3. Push to `main`.
+If Actions is unavailable, `npm run deploy` validates, builds, and force-pushes
+`dist/` to the `gh-pages` branch. For this fallback, set Pages source to
+**Deploy from a branch → `gh-pages` / `/`**. The script writes `dist/.nojekyll`,
+which prevents Jekyll from dropping the `_astro/` assets.
 
 If you change the repository name, update `base` in `astro.config.mjs` (and `site`) to match.
 alphaTab's font and SoundFont URLs are derived from `import.meta.env.BASE_URL`, so a wrong

@@ -1,8 +1,8 @@
 name: Deploy to GitHub Pages
 
 on:
-  # Auto-deploy on push is disabled while the GitHub account is billing-locked.
-  # Re-add `push: { branches: [main] }` here once Actions is available again.
+  push:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
